@@ -16,7 +16,7 @@ define Device/hasivo_f1100wp-4sx-4xgt
   SOC := rtl9303
   DEVICE_VENDOR := Hasivo
   DEVICE_MODEL := F1100WP-4SX-4XGT
-  DEVICE_PACKAGES := kmod-phy-realtek rtl8264b-firmware
+  DEVICE_PACKAGES := kmod-phy-realtek rtl8264b-firmware kmod-mfd-hasivo-stc8 kmod-pse-pd kmod-pse-hasivo-hs104 gpiod-tools gpioctl-sysfs
   IMAGE_SIZE := 12288k
   $(Device/kernel-lzma)
 endef
