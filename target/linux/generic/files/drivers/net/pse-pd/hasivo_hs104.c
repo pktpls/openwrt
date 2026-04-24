@@ -57,14 +57,67 @@
 
 struct hs104_priv {
 	struct regmap		*regmap;
+	struct regmap		*led_regmap;
 	struct pse_controller_dev pcdev;
 	unsigned int		last_pw_status;
 	unsigned int		last_pw_en;
+	u8			led_reg;
+	u8			led_exec_bit;
+	u8			led_masks[HS104_MAX_PORTS];
 };
 
 static inline struct hs104_priv *to_hs104(struct pse_controller_dev *pcdev)
 {
 	return container_of(pcdev, struct hs104_priv, pcdev);
+}
+
+static bool hs104_has_poe_leds(struct hs104_priv *priv)
+{
+	return !!priv->led_regmap;
+}
+
+static int hs104_write_poe_leds(struct hs104_priv *priv, unsigned int pw_status)
+{
+	unsigned int regval, led_bits = 0, led_mask = 0;
+	int id, ret;
+
+	if (!hs104_has_poe_leds(priv))
+		return 0;
+
+	ret = regmap_read(priv->led_regmap, priv->led_reg, &regval);
+	if (ret)
+		return ret;
+
+	for (id = 0; id < HS104_MAX_PORTS; id++) {
+		led_mask |= priv->led_masks[id];
+		if (pw_status & HS104_PORT_BIT(id))
+			led_bits |= priv->led_masks[id];
+	}
+
+	/*
+	 * Match the stock F1100WP userspace behavior: force the upper nibble
+	 * to the execute bit and drive the low nibble with the per-port PoE
+	 * LED bits.
+	 */
+	regval = (regval & ~0xf0) | priv->led_exec_bit;
+	regval = (regval & ~led_mask) | led_bits;
+
+	return regmap_write(priv->led_regmap, priv->led_reg, regval);
+}
+
+static void hs104_sync_poe_leds(struct hs104_priv *priv)
+{
+	unsigned int pw_status;
+	int ret;
+
+	if (!hs104_has_poe_leds(priv))
+		return;
+
+	ret = regmap_read(priv->regmap, HS104_REG_PW_STATUS, &pw_status);
+	if (ret)
+		return;
+
+	hs104_write_poe_leds(priv, pw_status & GENMASK(HS104_MAX_PORTS - 1, 0));
 }
 
 /* Read 16-bit big-endian register and apply unit conversion */
@@ -276,6 +329,8 @@ static int hs104_map_event(int irq, struct pse_controller_dev *pcdev,
 	if (ret)
 		return ret;
 
+	hs104_write_poe_leds(priv, pw_status & GENMASK(HS104_MAX_PORTS - 1, 0));
+
 	/* Detect any changes in power status or enable state */
 	changed = (pw_status ^ priv->last_pw_status) |
 		  (pw_en ^ priv->last_pw_en);
@@ -343,6 +398,61 @@ static const struct regmap_config hs104_regmap_config = {
 	.wr_table = &hs104_wr_table,
 };
 
+static const struct regmap_config hs104_led_regmap_config = {
+	.reg_bits = 8,
+	.val_bits = 8,
+};
+
+static void hs104_init_poe_leds(struct i2c_client *client, struct hs104_priv *priv)
+{
+	struct device *dev = &client->dev;
+	struct i2c_client *led_client;
+	u32 led_addr, led_reg, led_exec = HS104_EXECUTE;
+	u32 led_masks[HS104_MAX_PORTS];
+	int ret, id;
+
+	if (of_property_read_u32(dev->of_node, "hasivo,poe-led-i2c-addr",
+				 &led_addr))
+		return;
+
+	ret = of_property_read_u32(dev->of_node, "hasivo,poe-led-reg", &led_reg);
+	if (ret) {
+		dev_warn(dev, "PoE LED controller configured without hasivo,poe-led-reg\n");
+		return;
+	}
+
+	ret = of_property_read_u32_array(dev->of_node, "hasivo,poe-led-masks",
+					 led_masks, HS104_MAX_PORTS);
+	if (ret) {
+		dev_warn(dev, "PoE LED controller configured without 4 hasivo,poe-led-masks values\n");
+		return;
+	}
+
+	of_property_read_u32(dev->of_node, "hasivo,poe-led-execute-bit",
+			     &led_exec);
+
+	led_client = devm_i2c_new_dummy_device(dev, client->adapter, led_addr);
+	if (IS_ERR(led_client)) {
+		dev_warn(dev, "Failed to create PoE LED I2C client at 0x%02x: %ld\n",
+			 led_addr, PTR_ERR(led_client));
+		return;
+	}
+
+	priv->led_regmap = devm_regmap_init_i2c(led_client,
+						&hs104_led_regmap_config);
+	if (IS_ERR(priv->led_regmap)) {
+		dev_warn(dev, "Failed to create PoE LED regmap: %ld\n",
+			 PTR_ERR(priv->led_regmap));
+		priv->led_regmap = NULL;
+		return;
+	}
+
+	priv->led_reg = led_reg;
+	priv->led_exec_bit = led_exec;
+	for (id = 0; id < HS104_MAX_PORTS; id++)
+		priv->led_masks[id] = led_masks[id];
+}
+
 static int hs104_probe(struct i2c_client *client)
 {
 	struct device *dev = &client->dev;
@@ -370,6 +480,8 @@ static int hs104_probe(struct i2c_client *client)
 		dev_err(dev, "Unknown device ID: 0x%02x\n", devid);
 		return -ENODEV;
 	}
+
+	hs104_init_poe_leds(client, priv);
 
 	/*
 	 * Enable all ports before registering the PSE controller, so that
@@ -403,6 +515,8 @@ static int hs104_probe(struct i2c_client *client)
 		if (ret)
 			dev_warn(dev, "Failed to register poll helper: %d\n", ret);
 	}
+
+	hs104_sync_poe_leds(priv);
 
 	dev_info(dev, "HS104 PSE controller initialized\n");
 	return 0;
