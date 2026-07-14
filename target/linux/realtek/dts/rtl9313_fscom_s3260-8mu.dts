@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/dts-v1/;
+
+#include "rtl931x.dtsi"
+
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/phy/phy.h>
+
+/ {
+  compatible = "fscom,s3260-8mu", "realtek,rtl9313-soc";
+  model = "FS.com S3260-8MU";
+
+  memory@0 {
+    device_type = "memory";
+    reg = <0x00000000 0x10000000>, /* 256 MiB lowmem */
+          <0x90000000 0x10000000>; /* 256 MiB highmem */
+  };
+
+  chosen {
+    stdout-path = "serial0:115200n8";
+  };
+
+  // TODO
+};
