@@ -2,6 +2,16 @@
 
 include ./common.mk
 
+define Device/fscom_s3260-8mu
+  SOC := rtl9313
+  DEVICE_VENDOR := FS.com
+  DEVICE_MODEL := S3260-8MU
+  IMAGE_SIZE := TODO
+  DEVICE_PACKAGES := TODO
+  $(Device/kernel-lzma)
+endef
+TARGET_DEVICES += fscom_s3260-8mu
+
 define Device/hasivo_f5800w-12s-plus
   SOC := rtl9313
   DEVICE_VENDOR := Hasivo
