@@ -33,7 +33,9 @@ define Device/hasivo_f1100w-4sx-4xgt-common
   DEVICE_ALT1_MODEL := F1100WP-4SX-4XGT
   DEVICE_ALT2_VENDOR := Hasivo
   DEVICE_ALT2_MODEL := F1100WP-4SX-4XGT-SE
-  DEVICE_PACKAGES := kmod-phy-realtek rtl826x-firmware
+  DEVICE_PACKAGES := kmod-phy-realtek rtl826x-firmware \
+  ethtool-full gpiod-tools i2c-tools screen \
+  kmod-pse-pd kmod-pse-hasivo-hs104 kmod-mfd-hasivo-stc8
   IMAGE_SIZE := 29696k
   $(Device/kernel-lzma)
 endef
