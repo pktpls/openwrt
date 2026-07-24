@@ -79,3 +79,55 @@
 		};
 	};
 };
+
+&mdio_bus0 {
+	ethernet-phy-package@1 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <1>;
+
+		PHY_C45(0, 0)
+		PHY_C45(1, 1)
+		PHY_C45(4, 2)
+		PHY_C45(5, 3)
+	};
+
+	ethernet-phy-package@5 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <5>;
+
+		PHY_C45(8, 4)
+		PHY_C45(9, 5)
+		PHY_C45(12, 6)
+		PHY_C45(13, 7)
+	};
+};
+
+&switch0 {
+	ethernet-ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		SWITCH_PORT_SDS(0, 1, 2, 0, 10g-qxgmii)
+		SWITCH_PORT_SDS(1, 2, 2, 1, 10g-qxgmii)
+		SWITCH_PORT_SDS(4, 3, 2, 2, 10g-qxgmii)
+		SWITCH_PORT_SDS(5, 4, 2, 3, 10g-qxgmii)
+
+		SWITCH_PORT_SDS(8, 5, 3, 0, 10g-qxgmii)
+		SWITCH_PORT_SDS(9, 6, 3, 1, 10g-qxgmii)
+		SWITCH_PORT_SDS(12, 7, 3, 2, 10g-qxgmii)
+		SWITCH_PORT_SDS(13, 8, 3, 3, 10g-qxgmii)
+
+		/* CPU port */
+		port@56 {
+			ethernet = <&ethernet0>;
+			reg = <56>;
+			phy-mode = "internal";
+			fixed-link {
+				speed = <1000>;
+				full-duplex;
+			};
+		};
+	};
+};
