@@ -9,18 +9,73 @@
 #include <dt-bindings/phy/phy.h>
 
 / {
-  compatible = "fscom,s3260-8mu", "realtek,rtl9313-soc";
-  model = "FS.com S3260-8MU";
+	compatible = "fscom,s3260-8mu", "realtek,rtl9313-soc";
+	model = "FS.com S3260-8MU";
 
-  memory@0 {
-    device_type = "memory";
-    reg = <0x00000000 0x10000000>, /* 256 MiB lowmem */
-          <0x90000000 0x10000000>; /* 256 MiB highmem */
-  };
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x10000000>, /* 256 MiB lowmem */
+		      <0x90000000 0x10000000>; /* 256 MiB highmem */
+	};
 
-  chosen {
-    stdout-path = "serial0:115200n8";
-  };
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+};
 
-  // TODO
+&spi0 {
+	status = "okay";
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			/* stock is LOADER */
+			partition@0 {
+				label = "u-boot";
+				reg = <0x0000000 0x0400000>; // 4M
+				read-only;
+			};
+
+			/* stock is BDINFO */
+			partition@400000 {
+				label = "u-boot-env";
+				reg = <0x0400000 0x0080000>; // 512K
+			};
+
+			/* stock is SYSINFO */
+			partition@480000 {
+				label = "u-boot-env2";
+				reg = <0x0480000 0x0080000>; // 512K
+			};
+
+			/* stock is CFG JFFS2 */
+			partition@500000 {
+				label = "jffs";
+				reg = <0x0500000 0x0100000>; // 1M
+			};
+
+			/* stock is LOG JFFS2 */
+			partition@600000 {
+				label = "jffs2";
+				reg = <0x0600000 0x0c00000>; // 12M
+			};
+
+			/* stock is RUNTIME and RUNTIME2
+			 * RUNTIME is <0x1200000 0x1700000>
+			 * RUNTIME2 is <0x2900000 0x1700000>
+			 */
+			partition@1200000 {
+				compatible = "openwrt,uimage", "denx,uimage";
+				label = "firmware";
+				reg = <0x1200000 0x2e00000>; // 46M
+			};
+		};
+	};
 };

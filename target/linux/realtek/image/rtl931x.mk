@@ -6,8 +6,8 @@ define Device/fscom_s3260-8mu
   SOC := rtl9313
   DEVICE_VENDOR := FS.com
   DEVICE_MODEL := S3260-8MU
-  IMAGE_SIZE := TODO
-  DEVICE_PACKAGES := TODO
+  IMAGE_SIZE := 47104k
+  DEVICE_PACKAGES := ethtool-full gpiod-tools i2c-tools screen
   $(Device/kernel-lzma)
 endef
 TARGET_DEVICES += fscom_s3260-8mu
