@@ -21,6 +21,55 @@
 	chosen {
 		stdout-path = "serial0:115200n8";
 	};
+
+	sfp9: sfp-p9 {
+		compatible = "sff,sfp";
+		i2c-bus = <&i2c1_sda0>;
+	};
+
+	sfp10: sfp-p10 {
+		compatible = "sff,sfp";
+		i2c-bus = <&i2c1_sda1>;
+	};
+
+	sfp11: sfp-p11 {
+		compatible = "sff,sfp";
+		i2c-bus = <&i2c1_sda2>;
+	};
+
+	sfp12: sfp-p12 {
+		compatible = "sff,sfp";
+		i2c-bus = <&i2c1_sda3>;
+	};
+
+	i2c_sys: i2c-system {
+		compatible = "i2c-gpio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		// tried:
+		// 5+4 4+5
+		// 8+7 7+8
+		// TODO: try with i2c-gpio,delay-us
+		// scl-gpios = <&gpio0 7 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		// sda-gpios = <&gpio0 8 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	};
+};
+
+// line 3 is reset button
+// line 6 is led-mode button
+&gpio0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinmux_disable_jtag>;
+};
+
+&i2c_mst1 {
+	status = "okay";
+
+	i2c1_sda0: i2c@0 { reg = <0>; };
+	i2c1_sda1: i2c@1 { reg = <1>; };
+	i2c1_sda2: i2c@2 { reg = <2>; };
+	i2c1_sda3: i2c@3 { reg = <3>; };
 };
 
 &spi0 {
@@ -119,6 +168,11 @@
 		SWITCH_PORT_SDS(12, 7, 3, 2, 10g-qxgmii)
 		SWITCH_PORT_SDS(13, 8, 3, 3, 10g-qxgmii)
 
+		SWITCH_PORT_SFP(52, 9, 10, 3, 9)
+		SWITCH_PORT_SFP(53, 10,  11, 3, 10)
+		SWITCH_PORT_SFP(54, 11, 12, 3, 11)
+		SWITCH_PORT_SFP(55, 12, 13, 3, 12)
+
 		/* CPU port */
 		port@56 {
 			ethernet = <&ethernet0>;
@@ -130,4 +184,17 @@
 			};
 		};
 	};
+};
+
+&serdes10 {
+	tx-polarity = <PHY_POL_INVERT>;
+};
+&serdes11 {
+	tx-polarity = <PHY_POL_INVERT>;
+};
+&serdes12 {
+	tx-polarity = <PHY_POL_INVERT>;
+};
+&serdes13 {
+	tx-polarity = <PHY_POL_INVERT>;
 };
